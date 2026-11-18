@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' · ' + ${@brand.name}">Session Scheduler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<!--
+  Signed-in pages are laid out as:
+    <div class="shell" id="shell">
+      <aside th:replace="~{fragments :: sidebar('section')}"></aside>
+      <div class="main">
+        <header th:replace="~{fragments :: topbar('Page title')}"></header>
+        <main class="content"> ... </main>
+      </div>
+    </div>
+    <script th:replace="~{fragments :: shellScript}"></script>
+  Students get a light sidebar, supervisors a navy one.
+-->
+
+<aside th:fragment="sidebar(section)" class="sidebar"
+       th:classappend="${user.role.name() == 'STUDENT'} ? 'sidebar-light' : 'sidebar-dark'" aria-label="Main menu">
+  <a class="brand" th:href="@{${user.role.name() == 'STUDENT'} ? '/student' : '/admin'}">
+    <span class="brand-mark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
+    <span th:text="${@brand.name}">Session Scheduler</span>
+  </a>
+
+  <!-- Student menu -->
+  <th:block th:if="${user.role.name() == 'STUDENT'}">
+    <div class="profile">
+      <span class="avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(user.fullName, 0, 1))}">A</span>
+      <b th:text="${user.fullName}">Angad Dhiman</b>
+      <span th:text="${user.email}">angad@example.com</span>
+    </div>
+    <nav class="nav">
+      <a th:href="@{/student}" th:classappend="${section == 'student'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        Book a test
+      </a>
+      <a th:href="@{/student#bookings}">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+        My bookings
+      </a>
+      <a th:href="@{/account/password}" th:classappend="${section == 'account'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>
+        Change password
+      </a>
+    </nav>
+  </th:block>
+
+  <!-- Supervisor menu -->
+  <th:block th:unless="${user.role.name() == 'STUDENT'}">
+    <nav class="nav">
+      <span class="nav-label">Bookings</span>
+      <a th:href="@{/admin}" th:classappend="${section == 'sessions' and view != 'waiting'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a th:href="@{/admin(view='waiting')}" th:classappend="${section == 'sessions' and view == 'waiting'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        Not assigned
+        <span class="badge badge-red" th:if="${countWaiting != null and countWaiting > 0}" th:text="${countWaiting}">3</span>
+      </a>
+      <a th:href="@{/admin/export.xlsx}">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+        Download Excel
+      </a>
+      <span class="nav-label">Manage</span>
+      <a th:href="@{/admin/proctors}" th:classappend="${section == 'proctors'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 11l2 2 4-4"/></svg>
+        Proctors
+      </a>
+      <a th:href="@{/admin/team}" th:classappend="${section == 'team'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>
+        Supervisors
+      </a>
+      <span class="nav-label">Account</span>
+      <a th:href="@{/account/password}" th:classappend="${section == 'account'} ? 'active'">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>
+        Change password
+      </a>
+    </nav>
+  </th:block>
+
+  <div class="sidebar-foot">
+    <form th:action="@{/logout}" method="post">
+      <button type="submit">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M14 16l4-4-4-4M18 12H9"/></svg>
+        Sign out
+      </button>
+    </form>
+    <span class="sidebar-version" th:unless="${user.role.name() == 'STUDENT'}">Supervisor portal</span>
+  </div>
+</aside>
+
+<header th:fragment="topbar(title)" class="topbar">
+  <button type="button" class="menu-btn" data-menu aria-label="Open menu" aria-controls="shell">
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <span class="topbar-title" th:text="${title}">Dashboard</span>
+  <div class="topbar-right">
+    <!-- Notifications (supervisor dashboard only) -->
+    <details class="bell" th:if="${notifications != null}">
+      <summary aria-label="Notifications">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0"/></svg>
+        <span class="badge badge-red" id="unread" th:if="${unread > 0}" th:text="${unread > 9} ? '9+' : ${unread}">2</span>
+      </summary>
+      <div class="bell-pop">
+        <div class="bell-head">
+          <b>Notifications</b>
+          <form th:if="${unread > 0}" th:action="@{/admin/notifications/read-all}" method="post">
+            <button class="btn btn-link" type="submit">Mark all as read</button>
+          </form>
+        </div>
+        <p class="empty pad" th:if="${#lists.isEmpty(notifications)}">New bookings and cancellations show up here.</p>
+        <ul class="notes" th:unless="${#lists.isEmpty(notifications)}">
+          <li th:each="n : ${notifications}" th:classappend="${!n.readFlag} ? 'is-unread'">
+            <span class="new" th:if="${!n.readFlag}">New</span>
+            <span th:text="${n.message}">Angad Dhiman booked a test for Wed, 18 Nov 2026, 10:00 EST.</span>
+            <time th:text="${@fmt.display(n.createdAt)}">Tue, 17 Nov 2026, 16:42</time>
+          </li>
+        </ul>
+      </div>
+    </details>
+    <div class="me">
+      <span class="avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(user.fullName, 0, 1))}">M</span>
+      <div>
+        <b th:text="${user.fullName}">Meera Iyer</b>
+        <span th:text="${user.role.name() == 'STUDENT'} ? 'Student' : 'Supervisor'">Supervisor</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script th:fragment="shellScript">
+  (function () {
+    // Mobile: open/close the sidebar
+    var shell = document.getElementById('shell');
+    document.querySelectorAll('[data-menu]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); shell.classList.toggle('nav-open'); });
+    });
+    document.addEventListener('click', function (e) {
+      if (shell && shell.classList.contains('nav-open') && !e.target.closest('.sidebar')) shell.classList.remove('nav-open');
+      // close the notifications pop-up when clicking elsewhere
+      document.querySelectorAll('details.bell[open]').forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute('open'); });
+    });
+  })();
+</script>
+
+<!-- Flash messages after a redirect -->
+<th:block th:fragment="flash">
+  <div class="notice notice-ok" role="status" th:if="${ok}" th:text="${ok}">Saved.</div>
+  <div class="notice notice-error" role="alert" th:if="${error}" th:text="${error}">Something failed.</div>
+</th:block>
+
+<!-- Left column of the sign-in and sign-up pages -->
+<aside class="auth-side" th:fragment="authside">
+  <div class="brand brand-light">
+    <span class="brand-mark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
+    <span th:text="${@brand.name}">Session Scheduler</span>
+  </div>
+  <div class="auth-copy">
+    <h1>Tell us when you'll take your test</h1>
+    <ol class="steps">
+      <li><b>Register</b> and confirm your email address.</li>
+      <li><b>Pick a day</b> on the calendar, then a start time in your US time zone.</li>
+      <li><b>That's it.</b> We'll confirm we've received it and get back to you.</li>
+    </ol>
+  </div>
+  <p class="auth-foot">Supervisors sign in with the login ID and password they were given.</p>
+</aside>
+
+</body>
+</html>

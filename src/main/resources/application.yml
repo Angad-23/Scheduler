@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: session-scheduler
+  profiles:
+    default: local            # no profile chosen = quick local run (see application-local.yml). Use "mysql" for MySQL.
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/scheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USER:scheduler}
+    password: ${DB_PASSWORD:scheduler}
+  jpa:
+    open-in-view: true
+    hibernate:
+      ddl-auto: none          # the schema is owned by Flyway (src/main/resources/db/migration)
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  session:
+    jdbc:
+      initialize-schema: never   # tables come from Flyway (V2__spring_session.sql)
+    timeout: 8h                  # logins live in MySQL, so restarts and Render spin-downs don't log people out
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework   # correct https links and redirects behind Render's proxy
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+
+logging:
+  level:
+    com.sessionscheduler.scheduler: INFO
+
+app:
+  brand-name: ${APP_BRAND_NAME:Session Scheduler}   # product name shown in the app and emails
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  display-zone: ${APP_DISPLAY_ZONE:Asia/Kolkata}     # time zone used on the supervisor portal and in the Excel export
+  mail-from: ${APP_MAIL_FROM:no-reply@localhost}
+  mail-from-name: ${APP_MAIL_FROM_NAME:}   # sender name shown in the inbox; empty = the brand name
+  mail-log-only: ${APP_MAIL_LOG_ONLY:false}
+  mail-provider: ${APP_MAIL_PROVIDER:smtp}     # smtp = MAIL_HOST settings; brevo = Brevo web API (no SMTP ports needed)
+  brevo-api-key: ${BREVO_API_KEY:}
+  verification-hours: 24
+  session-minutes: ${APP_SESSION_MINUTES:60}   # assumed length of a test, for proctor double-booking checks
+  seed-demo-proctors: ${APP_SEED_DEMO_PROCTORS:false}
+  admin:
+    email: ${APP_ADMIN_EMAIL:}
+    password: ${APP_ADMIN_PASSWORD:}
+    name: ${APP_ADMIN_NAME:Supervisor}

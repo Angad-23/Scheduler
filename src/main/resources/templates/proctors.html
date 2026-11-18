@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Proctors')}"></head>
+<body>
+<div class="shell" id="shell">
+  <aside th:replace="~{fragments :: sidebar('proctors')}"></aside>
+  <div class="main">
+    <header th:replace="~{fragments :: topbar('Proctors')}"></header>
+    <main class="content">
+  <div class="page-head">
+    <div>
+      <h1>Proctors</h1>
+      <p class="sub">Active proctors can be assigned to tests. Deactivate someone instead of deleting them, so past bookings keep their name. Proctors are never emailed.</p>
+    </div>
+  </div>
+
+  <th:block th:replace="~{fragments :: flash}"></th:block>
+
+  <section class="card">
+    <h2 class="card-title">Add a proctor</h2>
+    <form th:action="@{/admin/proctors}" method="post" class="inline-form">
+      <div class="field"><label for="fullName">Full name</label><input id="fullName" name="fullName" type="text" maxlength="100" required></div>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" maxlength="190" required></div>
+      <button class="btn btn-primary" type="submit">Add proctor</button>
+    </form>
+  </section>
+
+  <section class="card card-flush">
+    <p class="empty pad" th:if="${#lists.isEmpty(proctors)}">No proctors yet. Add the first one above.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(proctors)}">
+      <table class="table">
+        <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${proctors}" th:classappend="${!p.active} ? 'is-cancelled'">
+          <td class="strong" th:text="${p.fullName}">Priya Menon</td>
+          <td th:text="${p.email}">priya.menon@example.com</td>
+          <td><span class="pill" th:classappend="${p.active} ? 'pill-assigned' : 'pill-cancelled'" th:text="${p.active} ? 'Active' : 'Inactive'">Active</span></td>
+          <td class="align-right">
+            <form th:action="@{/admin/proctors/{id}/toggle(id=${p.id})}" method="post">
+              <button class="btn btn-small" type="submit" th:text="${p.active} ? 'Deactivate' : 'Reactivate'">Deactivate</button>
+            </form>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+  </div>
+</div>
+<script th:replace="~{fragments :: shellScript}"></script>
+</body>
+</html>

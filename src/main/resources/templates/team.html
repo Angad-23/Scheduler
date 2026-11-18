@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Supervisors')}"></head>
+<body>
+<div class="shell" id="shell">
+  <aside th:replace="~{fragments :: sidebar('team')}"></aside>
+  <div class="main">
+    <header th:replace="~{fragments :: topbar('Supervisors')}"></header>
+    <main class="content">
+  <div class="page-head">
+    <div>
+      <h1>Supervisors</h1>
+      <p class="sub">Supervisors see every booking, assign proctors, and get an email for each booking and each proctor assignment.</p>
+    </div>
+  </div>
+
+  <th:block th:replace="~{fragments :: flash}"></th:block>
+
+  <section class="card">
+    <h2 class="card-title">Add a supervisor</h2>
+    <form th:action="@{/admin/team}" method="post" class="inline-form" autocomplete="off">
+      <div class="field"><label for="fullName">Full name</label><input id="fullName" name="fullName" type="text" maxlength="100" required></div>
+      <div class="field"><label for="email">Login ID (work email)</label><input id="email" name="email" type="email" maxlength="190" required></div>
+      <div class="field"><label for="password">Password</label><input id="password" name="password" type="text" minlength="8" maxlength="72" required autocomplete="new-password"></div>
+      <button class="btn btn-primary" type="submit">Add supervisor</button>
+    </form>
+    <p class="hint">The account works right away. Share the login ID and password with them; they can change the password under their name &gt; Change password.</p>
+  </section>
+
+  <section class="card card-flush">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">Name</th><th scope="col">Login ID</th><th scope="col">Status</th><th scope="col">Set a new password</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        <tr th:each="u : ${staff}" th:with="state=${states.get(u.id)}" th:classappend="${state == 'deactivated'} ? 'is-cancelled'">
+          <td class="strong"><span th:text="${u.fullName}">Meera Iyer</span><span class="you" th:if="${u.id == user.id}">You</span></td>
+          <td th:text="${u.email}">meera@example.com</td>
+          <td>
+            <span class="pill pill-assigned" th:if="${state == 'active'}">Active</span>
+            <span class="pill pill-cancelled" th:if="${state == 'deactivated'}">Deactivated</span>
+          </td>
+          <td>
+            <form class="assign" th:if="${u.id != user.id}" th:action="@{/admin/team/{id}/password(id=${u.id})}" method="post" autocomplete="off">
+              <input type="text" name="password" minlength="8" maxlength="72" required placeholder="New password"
+                     th:attr="aria-label='New password for ' + ${u.fullName}" autocomplete="new-password">
+              <button class="btn btn-small" type="submit">Save</button>
+            </form>
+            <a class="small-link" th:if="${u.id == user.id}" th:href="@{/account/password}">Change your password</a>
+          </td>
+          <td>
+            <div class="row-actions">
+              <form th:if="${state == 'active' and u.id != user.id}" th:action="@{/admin/team/{id}/active(id=${u.id})}" method="post">
+                <input type="hidden" name="active" value="false">
+                <button class="btn btn-small" type="submit">Deactivate</button>
+              </form>
+              <form th:if="${state == 'deactivated'}" th:action="@{/admin/team/{id}/active(id=${u.id})}" method="post">
+                <input type="hidden" name="active" value="true">
+                <button class="btn btn-small" type="submit">Reactivate</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+  </div>
+</div>
+<script th:replace="~{fragments :: shellScript}"></script>
+</body>
+</html>

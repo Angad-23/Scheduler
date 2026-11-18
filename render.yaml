@@ -1,0 +1,38 @@
+# Render Blueprint (free, DEMO: no external database).
+# The app uses its built-in database inside the container, so ALL DATA IS WIPED on every
+# deploy, restart or spin-down. Fine for a demo; for real use add a database (see render.tidb.yaml.example).
+#  - Free web services block SMTP ports, so email goes through Brevo's web API.
+#  - Keep it awake with a free pinger (cron-job.org) calling /login every 10 minutes.
+services:
+  - type: web
+    name: session-scheduler
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /login
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: local
+      - key: APP_MAIL_LOG_ONLY       # local mode prints emails by default; send them for real
+        value: "false"
+      - key: APP_MAIL_PROVIDER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: APP_MAIL_FROM           # a sender verified in Brevo
+        sync: false
+      - key: APP_MAIL_FROM_NAME
+        value: Trivium Scheduler
+      - key: APP_BRAND_NAME
+        value: Trivium Scheduler
+      - key: APP_BASE_URL            # set to your onrender.com address after the first deploy
+        sync: false
+      - key: APP_DISPLAY_ZONE
+        value: Asia/Kolkata
+      - key: APP_ADMIN_EMAIL         # recreated on every restart, since the data is wiped
+        sync: false
+      - key: APP_ADMIN_PASSWORD
+        sync: false
+      - key: APP_ADMIN_NAME
+        sync: false

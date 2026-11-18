@@ -1,0 +1,25 @@
+# Quick local run: just start SchedulerApplication from your IDE (or `mvn spring-boot:run`).
+# No MySQL and no mail server needed:
+#   - data is kept in an embedded H2 database file under ./data (delete the folder to start fresh)
+#   - emails are printed in the console instead of being sent (copy the verification link from there)
+# To run against MySQL instead, start with the profile "mysql":  SPRING_PROFILES_ACTIVE=mysql
+spring:
+  autoconfigure:
+    # logins are kept in memory here; the MySQL setup keeps them in the database instead
+    exclude: org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
+  datasource:
+    url: jdbc:h2:file:./data/scheduler;MODE=MySQL;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update           # Hibernate creates and alters tables to match the entities
+
+app:
+  mail-log-only: ${APP_MAIL_LOG_ONLY:true}   # set APP_MAIL_LOG_ONLY=false (plus the MAIL_* settings) to send real email
+  seed-demo-proctors: true
+  admin:
+    email: ${APP_ADMIN_EMAIL:supervisor@example.com}
+    password: ${APP_ADMIN_PASSWORD:ChangeMe123!}

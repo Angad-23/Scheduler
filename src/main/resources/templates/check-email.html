@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Confirm your email')}"></head>
+<body class="auth-body">
+<main class="auth">
+  <aside th:replace="~{fragments :: authside}"></aside>
+  <section class="auth-main">
+    <div class="auth-box">
+      <h2>Confirm your email</h2>
+      <p>We've sent a confirmation link to <b th:text="${email}">you@example.com</b>. Open it, then come back and sign in.</p>
+      <ul class="plain-list">
+        <li>The link works for 24 hours.</li>
+        <li>Nothing in your inbox? Check spam, or register again with the same email to get a new link.</li>
+      </ul>
+      <a class="btn btn-secondary" th:href="@{/login}">Back to sign in</a>
+    </div>
+  </section>
+</main>
+</body>
+</html>

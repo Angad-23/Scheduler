@@ -1,0 +1,45 @@
+# Sandbox stack: app + MySQL + a test mail inbox (Mailpit).
+# Start:  docker compose up --build
+# App:    http://localhost:8080      Mail inbox: http://localhost:8025
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: scheduler
+      MYSQL_USER: scheduler
+      MYSQL_PASSWORD: scheduler
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports: ["3306:3306"]
+    volumes: ["mysql-data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["8025:8025", "1025:1025"]
+
+  app:
+    build: .
+    depends_on:
+      mysql: { condition: service_healthy }
+      mailpit: { condition: service_started }
+    ports: ["8080:8080"]
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      DB_URL: jdbc:mysql://mysql:3306/scheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: scheduler
+      DB_PASSWORD: scheduler
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      APP_BASE_URL: http://localhost:8080
+      # First supervisor account, created on startup. Change before sharing the sandbox.
+      APP_ADMIN_EMAIL: supervisor@example.com
+      APP_ADMIN_PASSWORD: ChangeMe123!
+      APP_ADMIN_NAME: Supervisor
+      APP_SEED_DEMO_PROCTORS: "true"
+
+volumes:
+  mysql-data:

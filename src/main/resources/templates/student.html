@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Book a test')}"></head>
+<body>
+<div class="shell" id="shell">
+  <aside th:replace="~{fragments :: sidebar('student')}"></aside>
+  <div class="main">
+    <header th:replace="~{fragments :: topbar('Book a test')}"></header>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1 th:text="'Hi ' + ${#strings.arraySplit(user.fullName, ' ')[0]} + ', when will you take your test?'">Hi Angad, when will you take your test?</h1>
+          <p class="sub">Pick a day on the calendar, then a start time. Times are in the time zone you choose.</p>
+        </div>
+      </div>
+
+      <th:block th:replace="~{fragments :: flash}"></th:block>
+
+      <form th:action="@{/student/sessions}" th:object="${bookingForm}" method="post" id="booking-form" novalidate>
+        <div class="notice notice-error" role="alert" th:if="${#fields.hasErrors('*')}" style="margin-bottom:16px">
+          <span th:each="e : ${#fields.allErrors()}" th:text="${e}">That time has already passed.</span>
+        </div>
+        <input type="hidden" th:field="*{date}">
+        <input type="hidden" th:field="*{time}">
+
+        <section class="card booker" aria-label="Choose a date and time">
+          <div class="booker-info">
+            <span class="booker-logo" aria-hidden="true">
+              <svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/></svg>
+            </span>
+            <div>
+              <p class="muted" th:text="${@brand.name}">Session Scheduler</p>
+              <h2>Proctored test</h2>
+            </div>
+            <p class="meta-line">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              Choose a day and start time that works for you.
+            </p>
+            <p class="meta-line">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0"/></svg>
+              We'll email you that we've received it.
+            </p>
+            <div class="field tz-field">
+              <label for="timeZone">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+                Times shown in
+              </label>
+              <select th:field="*{timeZone}">
+                <option th:each="z : ${zones}" th:value="${z.key}" th:text="${z.value}">Eastern (EST/EDT)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="cal">
+            <div class="cal-head">
+              <h3 id="cal-month" aria-live="polite">November 2026</h3>
+              <button type="button" class="cal-today" id="cal-today">Today</button>
+              <button type="button" class="cal-nav" id="cal-prev" aria-label="Previous month">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+              </button>
+              <button type="button" class="cal-nav" id="cal-next" aria-label="Next month">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+            <div class="cal-grid" id="cal-grid" role="grid" aria-labelledby="cal-month"></div>
+            <div class="cal-legend">
+              <span><i class="dot dot-free" aria-hidden="true"></i> Available</span>
+              <span><i class="dot dot-booked" aria-hidden="true"></i> You already have a booking</span>
+            </div>
+            <noscript><p class="notice notice-error">Turn on JavaScript in your browser to use the calendar.</p></noscript>
+          </div>
+
+          <div class="slots">
+            <p class="slots-title" id="slots-title">Select a day</p>
+            <div class="slot-list" id="slot-list">
+              <p class="empty">Pick a day on the calendar to see start times.</p>
+            </div>
+          </div>
+        </section>
+      </form>
+
+      <section class="card" id="bookings" aria-labelledby="mine-h">
+        <div class="card-head">
+          <h2 id="mine-h" class="card-title">My bookings <span class="badge badge-soft" th:text="${#lists.size(upcoming)}">1</span></h2>
+        </div>
+        <p class="empty" th:if="${#lists.isEmpty(upcoming)}">No upcoming tests. When you book a time it shows here.</p>
+        <ul class="booking-list" th:unless="${#lists.isEmpty(upcoming)}">
+          <li class="upcoming" th:each="s : ${upcoming}" th:attr="data-day=${@fmt.part(s.startsAt, s.timeZone, 'yyyy-MM-dd')}">
+            <div class="datechip" aria-hidden="true">
+              <span class="datechip-m" th:text="${@fmt.part(s.startsAt, s.timeZone, 'MMM')}">Nov</span>
+              <span class="datechip-d" th:text="${@fmt.part(s.startsAt, s.timeZone, 'd')}">18</span>
+            </div>
+            <div class="booking-body">
+              <b th:text="${@fmt.part(s.startsAt, s.timeZone, 'EEEE, d MMMM yyyy')}">Wednesday, 18 November 2026</b>
+              <span th:text="${@fmt.part(s.startsAt, s.timeZone, 'h:mm a')} + ' ' + ${@fmt.abbr(s.startsAt, s.timeZone)}">10:00 AM EST</span>
+            </div>
+            <form th:action="@{/student/sessions/{id}/cancel(id=${s.id})}" method="post">
+              <button class="btn btn-small" type="submit">Cancel</button>
+            </form>
+          </li>
+        </ul>
+
+        <th:block th:unless="${#lists.isEmpty(history)}">
+          <h3 class="card-title" style="font-size:0.9rem;color:var(--ink-2);margin-top:6px">Past and cancelled</h3>
+          <ul class="booking-list">
+            <li th:each="s : ${history}" th:classappend="${s.status.name() == 'CANCELLED'} ? 'is-cancelled' : 'is-past'">
+              <div class="datechip" aria-hidden="true">
+                <span class="datechip-m" th:text="${@fmt.part(s.startsAt, s.timeZone, 'MMM')}">Nov</span>
+                <span class="datechip-d" th:text="${@fmt.part(s.startsAt, s.timeZone, 'd')}">10</span>
+              </div>
+              <div class="booking-body">
+                <b th:text="${@fmt.part(s.startsAt, s.timeZone, 'EEEE, d MMMM yyyy')}">Tuesday, 10 November 2026</b>
+                <span th:text="${@fmt.part(s.startsAt, s.timeZone, 'h:mm a')} + ' ' + ${@fmt.abbr(s.startsAt, s.timeZone)} + (${s.status.name() == 'CANCELLED'} ? ' · Cancelled' : '')">2:00 PM CST · Cancelled</span>
+              </div>
+            </li>
+          </ul>
+        </th:block>
+      </section>
+    </main>
+  </div>
+</div>
+<script th:replace="~{fragments :: shellScript}"></script>
+<script>
+  // Calendar booking: pick a day, then a start time; the hidden date/time fields are submitted.
+  (function () {
+    var FIRST_SLOT = 7 * 60;      // 7:00 AM
+    var LAST_SLOT = 22 * 60;      // 10:00 PM
+    var STEP = 30;                // minutes between start times
+    var DAYS_AHEAD = 90;          // how far ahead students can book
+
+    var form = document.getElementById('booking-form');
+    var dateInput = document.getElementById('date');
+    var timeInput = document.getElementById('time');
+    var zoneSelect = document.getElementById('timeZone');
+    var grid = document.getElementById('cal-grid');
+    var monthLabel = document.getElementById('cal-month');
+    var prev = document.getElementById('cal-prev');
+    var next = document.getElementById('cal-next');
+    var slotList = document.getElementById('slot-list');
+    var slotsTitle = document.getElementById('slots-title');
+
+    var booked = {};
+    document.querySelectorAll('.booking-list li.upcoming[data-day]').forEach(function (li) { booked[li.dataset.day] = true; });
+
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function iso(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
+    function parseIso(s) { var p = s.split('-'); return { y: +p[0], m: +p[1] - 1, d: +p[2] }; }
+
+    // "Now" as wall-clock date and minutes in the chosen time zone
+    function nowIn(zone) {
+      var parts = {};
+      new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+        .formatToParts(new Date()).forEach(function (p) { parts[p.type] = p.value; });
+      return { date: iso(+parts.year, +parts.month - 1, +parts.day), minutes: +parts.hour * 60 + +parts.minute };
+    }
+    function addDays(isoDate, n) {
+      var p = parseIso(isoDate), t = new Date(Date.UTC(p.y, p.m, p.d + n));
+      return iso(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+    }
+    function label12(min) {
+      var h = Math.floor(min / 60), m = min % 60, ap = h < 12 ? 'AM' : 'PM', hh = h % 12 || 12;
+      return hh + ':' + pad(m) + ' ' + ap;
+    }
+    function zoneAbbr(isoDate) {
+      var p = parseIso(isoDate);
+      var parts = new Intl.DateTimeFormat('en-US', { timeZone: zoneSelect.value, timeZoneName: 'short' }).formatToParts(new Date(Date.UTC(p.y, p.m, p.d, 17)));
+      var z = parts.filter(function (x) { return x.type === 'timeZoneName'; })[0];
+      return z ? z.value : '';
+    }
+
+    var today, lastDay, view, selected = dateInput.value || null, selectedTime = timeInput.value || null;
+
+    function refreshBounds() {
+      today = nowIn(zoneSelect.value);
+      lastDay = addDays(today.date, DAYS_AHEAD);
+      if (selected && (selected < today.date || selected > lastDay)) { selected = null; selectedTime = null; }
+      var base = parseIso(selected || today.date);
+      if (!view) view = { y: base.y, m: base.m };
+    }
+
+    function renderCalendar() {
+      monthLabel.textContent = new Date(Date.UTC(view.y, view.m, 1)).toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+      grid.textContent = '';
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) {
+        var h = document.createElement('div'); h.className = 'cal-dow'; h.textContent = d; h.setAttribute('role', 'columnheader'); grid.appendChild(h);
+      });
+      var first = new Date(Date.UTC(view.y, view.m, 1)).getUTCDay();   // 0 = Sunday
+      var offset = (first + 6) % 7;                                   // Monday first
+      var days = new Date(Date.UTC(view.y, view.m + 1, 0)).getUTCDate();
+      for (var i = 0; i < offset; i++) grid.appendChild(document.createElement('span'));
+      for (var d = 1; d <= days; d++) {
+        var key = iso(view.y, view.m, d);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cal-day';
+        b.textContent = d;
+        var open = key >= today.date && key <= lastDay && hasSlots(key);
+        if (open) { b.classList.add('available'); b.dataset.day = key; } else { b.disabled = true; }
+        if (key === today.date) b.classList.add('is-today');
+        if (booked[key]) b.classList.add('booked');
+        if (key === selected) { b.classList.add('selected'); b.setAttribute('aria-pressed', 'true'); }
+        b.setAttribute('aria-label', new Date(Date.UTC(view.y, view.m, d)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
+          + (open ? '' : ', not available') + (booked[key] ? ', you have a booking' : ''));
+        grid.appendChild(b);
+      }
+      var t = parseIso(today.date), l = parseIso(lastDay);
+      prev.disabled = view.y < t.y || (view.y === t.y && view.m <= t.m);
+      next.disabled = view.y > l.y || (view.y === l.y && view.m >= l.m);
+    }
+
+    function slotsFor(key) {
+      var list = [];
+      for (var m = FIRST_SLOT; m <= LAST_SLOT; m += STEP) {
+        if (key === today.date && m <= today.minutes + 15) continue;   // not in the past or the next 15 minutes
+        list.push(m);
+      }
+      return list;
+    }
+    function hasSlots(key) { return slotsFor(key).length > 0; }
+
+    function renderSlots() {
+      slotList.textContent = '';
+      if (!selected) {
+        slotsTitle.textContent = 'Select a day';
+        var p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Pick a day on the calendar to see start times.'; slotList.appendChild(p);
+        return;
+      }
+      var s = parseIso(selected);
+      slotsTitle.textContent = new Date(Date.UTC(s.y, s.m, s.d)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+      var abbr = zoneAbbr(selected);
+      slotsFor(selected).forEach(function (m) {
+        var hhmm = pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+        if (hhmm === selectedTime) {
+          var row = document.createElement('div'); row.className = 'slot-row';
+          var chosen = document.createElement('button'); chosen.type = 'button'; chosen.className = 'slot selected'; chosen.textContent = label12(m);
+          chosen.setAttribute('aria-pressed', 'true');
+          var go = document.createElement('button'); go.type = 'submit'; go.className = 'btn btn-primary'; go.textContent = 'Confirm';
+          go.setAttribute('aria-label', 'Confirm ' + label12(m) + ' ' + abbr + ' on ' + slotsTitle.textContent);
+          row.appendChild(chosen); row.appendChild(go); slotList.appendChild(row);
+        } else {
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'slot'; b.textContent = label12(m);
+          b.setAttribute('aria-label', label12(m) + ' ' + abbr);
+          b.addEventListener('click', function () { selectedTime = hhmm; timeInput.value = hhmm; renderSlots(); });
+          slotList.appendChild(b);
+        }
+      });
+      var tz = document.createElement('p'); tz.className = 'hint'; tz.textContent = 'Times in ' + abbr + '.'; slotList.appendChild(tz);
+    }
+
+    grid.addEventListener('click', function (e) {
+      var b = e.target.closest('button.cal-day.available');
+      if (!b) return;
+      if (selected !== b.dataset.day) { selectedTime = null; timeInput.value = ''; }
+      selected = b.dataset.day; dateInput.value = selected;
+      renderCalendar(); renderSlots();
+    });
+    prev.addEventListener('click', function () { view.m--; if (view.m < 0) { view.m = 11; view.y--; } renderCalendar(); });
+    next.addEventListener('click', function () { view.m++; if (view.m > 11) { view.m = 0; view.y++; } renderCalendar(); });
+    document.getElementById('cal-today').addEventListener('click', function () { var t = parseIso(today.date); view = { y: t.y, m: t.m }; renderCalendar(); });
+    zoneSelect.addEventListener('change', function () { refreshBounds(); renderCalendar(); renderSlots(); });
+    form.addEventListener('submit', function (e) {
+      if (!dateInput.value || !timeInput.value) { e.preventDefault(); slotsTitle.textContent = 'Pick a day and a start time first'; }
+    });
+
+    refreshBounds();
+    if (selected && !hasSlots(selected)) { selected = null; selectedTime = null; }
+    dateInput.value = selected || '';
+    if (selectedTime && slotsFor(selected || '').indexOf(+selectedTime.slice(0, 2) * 60 + +selectedTime.slice(3, 5)) < 0) selectedTime = null;
+    timeInput.value = selectedTime || '';
+    renderCalendar();
+    renderSlots();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<body>
+<div class="shell" id="shell">
+  <aside th:replace="~{fragments :: sidebar('sessions')}"></aside>
+  <div class="main">
+    <header th:replace="~{fragments :: topbar('Dashboard')}"></header>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1>Test bookings</h1>
+          <p class="sub">All times in <span th:text="${#strings.replace(displayZone, '_', ' ')}">Asia/Kolkata</span>, with the student's own time beside them.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/admin/export.xlsx}">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+          Download Excel
+        </a>
+      </div>
+
+      <th:block th:replace="~{fragments :: flash}"></th:block>
+      <div class="notice notice-info" id="fresh" role="status" hidden>New bookings have come in. <a th:href="@{/admin(view=${view})}">Refresh the list</a></div>
+
+      <div class="stats">
+        <a class="stat" th:href="@{/admin(view='all')}">
+          <span class="stat-icon stat-indigo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></span>
+          <div><b th:text="${countAll}">77</b><span>Total bookings</span></div>
+        </a>
+        <a class="stat" th:href="@{/admin(view='upcoming')}">
+          <span class="stat-icon stat-navy" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+          <div><b th:text="${countUpcoming}">24</b><span>Upcoming tests</span></div>
+        </a>
+        <a class="stat" th:href="@{/admin(view='waiting')}">
+          <span class="stat-icon stat-amber" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div><b th:text="${countWaiting}">6</b><span>Not assigned</span></div>
+        </a>
+        <div class="stat">
+          <span class="stat-icon stat-green" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></span>
+          <div><b th:text="${#lists.size(today)}">3</b><span>Tests today</span>
+            <span class="stat-note" th:if="${todayWaiting > 0}" th:text="${todayWaiting} + ' not assigned'">1 not assigned</span></div>
+        </div>
+      </div>
+
+      <section class="card card-flush" aria-labelledby="all-h">
+        <div class="toolbar">
+          <h2 id="all-h" class="sr-only">Bookings</h2>
+          <nav class="tabs" aria-label="Show">
+            <a th:href="@{/admin(view='upcoming')}" th:attr="aria-current=${view == 'upcoming'} ? 'page'">Upcoming <span class="tab-count" th:text="${countUpcoming}">24</span></a>
+            <a th:href="@{/admin(view='waiting')}" th:attr="aria-current=${view == 'waiting'} ? 'page'">Not assigned <span class="tab-count" th:text="${countWaiting}">6</span></a>
+            <a th:href="@{/admin(view='all')}" th:attr="aria-current=${view == 'all'} ? 'page'">All <span class="tab-count" th:text="${countAll}">77</span></a>
+          </nav>
+          <label class="search">
+            <span class="sr-only">Search bookings</span>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input type="search" id="q" placeholder="Search student name or email" autocomplete="off">
+          </label>
+        </div>
+
+        <p class="empty pad" th:if="${#lists.isEmpty(sessions)}"
+           th:text="${view == 'waiting'} ? 'Every upcoming test has a proctor.' : (${view == 'all'} ? 'No bookings yet. They appear here as soon as a student books a time.' : 'No upcoming tests.')">No upcoming tests.</p>
+        <p class="notice notice-info" style="margin:0 22px 16px" th:if="${#lists.isEmpty(proctors) and !#lists.isEmpty(sessions)}">
+          No proctors yet. <a th:href="@{/admin/proctors}">Add proctors</a> to start assigning.
+        </p>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(sessions)}">
+          <table class="table" id="sessions">
+            <thead>
+              <tr>
+                <th scope="col">Booking</th>
+                <th scope="col">Test date (your time)</th>
+                <th scope="col">Student's time</th>
+                <th scope="col">Student</th>
+                <th scope="col">Status</th>
+                <th scope="col">Proctor</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${sessions}"
+                th:attr="data-text=${#strings.toLowerCase(s.student.fullName + ' ' + s.student.email)}"
+                th:classappend="${s.status.name() == 'CANCELLED'} ? 'is-cancelled'">
+              <td class="nowrap">
+                <span class="ref" th:text="'#' + ${#numbers.formatInteger(s.id, 5)}">#00012</span>
+                <span class="cell-sub" th:text="'Booked ' + ${@fmt.displayPart(s.createdAt, 'dd MMM, hh:mm a')}">Booked 17 Nov, 04:42 PM</span>
+              </td>
+              <td class="nowrap">
+                <b th:text="${@fmt.displayPart(s.startsAt, 'EEE, dd MMM yyyy')}">Wed, 18 Nov 2026</b>
+                <span class="cell-sub" th:text="${@fmt.displayPart(s.startsAt, 'hh:mm a')} + ' ' + ${@fmt.displayAbbr(s.startsAt)}">08:30 PM IST</span>
+              </td>
+              <td class="nowrap">
+                <span th:text="${@fmt.part(s.startsAt, s.timeZone, 'EEE, h:mm a')}">Wed, 10:00 AM</span>
+                <span class="cell-sub" th:text="${@fmt.abbr(s.startsAt, s.timeZone)}">EST</span>
+              </td>
+              <td>
+                <b th:text="${s.student.fullName}">Angad Dhiman</b>
+                <span class="cell-sub" th:text="${s.student.email}">angad@example.com</span>
+              </td>
+              <td><span class="pill" th:classappend="'pill-' + ${#strings.toLowerCase(s.status.name())}" th:text="${s.status.label}">Not assigned</span></td>
+              <td class="nowrap">
+                <span class="muted" th:if="${s.status.name() == 'CANCELLED'}">Not needed</span>
+                <form class="assign" th:if="${s.status.name() != 'CANCELLED'}" th:action="@{/admin/sessions/{id}/assign(id=${s.id})}" method="post">
+                  <select name="proctorId" class="proctor-pick" th:attr="aria-label='Proctor for ' + ${s.student.fullName},data-session=${s.id}">
+                    <option value="">Choose proctor…</option>
+                    <option th:each="p : ${proctors}" th:value="${p.id}" th:text="${p.fullName}"
+                            th:selected="${s.proctor != null and s.proctor.id == p.id}">Priya Menon</option>
+                  </select>
+                  <button class="btn btn-small" type="submit" th:text="${s.proctor != null} ? 'Change' : 'Assign'">Assign</button>
+                </form>
+              </td>
+            </tr>
+            <tr class="no-match" hidden><td colspan="6">No bookings match your search.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-foot" th:unless="${#lists.isEmpty(sessions)}">
+          <span id="showing" aria-live="polite">Showing all bookings</span>
+          <nav class="pager" id="pager" aria-label="Pages"></nav>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<script th:replace="~{fragments :: shellScript}"></script>
+<script th:inline="javascript">
+  (function () {
+    // Search + pages (15 rows a page) on the bookings table
+    var PAGE = 15;
+    var table = document.getElementById('sessions');
+    if (table) {
+      var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr[data-text]'));
+      var noMatch = table.querySelector('tr.no-match');
+      var q = document.getElementById('q');
+      var pager = document.getElementById('pager');
+      var showing = document.getElementById('showing');
+      var page = 1, matches = rows;
+
+      function draw() {
+        var pages = Math.max(1, Math.ceil(matches.length / PAGE));
+        if (page > pages) page = pages;
+        rows.forEach(function (r) { r.hidden = true; });
+        matches.slice((page - 1) * PAGE, page * PAGE).forEach(function (r) { r.hidden = false; });
+        noMatch.hidden = matches.length > 0;
+        var from = matches.length ? (page - 1) * PAGE + 1 : 0, to = Math.min(page * PAGE, matches.length);
+        showing.textContent = 'Showing ' + from + ' to ' + to + ' of ' + matches.length + ' bookings';
+        pager.textContent = '';
+        if (pages < 2) return;
+        function btn(label, target, opts) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.innerHTML = label;
+          if (opts && opts.aria) b.setAttribute('aria-label', opts.aria);
+          if (target === page && !(opts && opts.nav)) b.setAttribute('aria-current', 'page');
+          b.disabled = target < 1 || target > pages || (opts && opts.nav && target === page);
+          b.addEventListener('click', function () { page = target; draw(); table.scrollIntoView({ block: 'nearest' }); });
+          pager.appendChild(b);
+        }
+        btn('&lsaquo;', page - 1, { nav: true, aria: 'Previous page' });
+        for (var i = 1; i <= pages; i++) {
+          if (pages > 7 && i > 2 && i < pages - 1 && Math.abs(i - page) > 1) {
+            if (i === 3 || i === pages - 2) { var gap = document.createElement('span'); gap.textContent = '…'; gap.className = 'muted'; pager.appendChild(gap); }
+            continue;
+          }
+          btn(String(i), i, { aria: 'Page ' + i });
+        }
+        btn('&rsaquo;', page + 1, { nav: true, aria: 'Next page' });
+      }
+      q.addEventListener('input', function () {
+        var text = q.value.trim().toLowerCase();
+        matches = rows.filter(function (r) { return !text || r.dataset.text.indexOf(text) >= 0; });
+        page = 1; draw();
+      });
+      draw();
+    }
+
+    // Unread notifications, checked every 30 seconds
+    var countUrl = /*[[@{/admin/notifications/count}]]*/ '/admin/notifications/count';
+    var shown = /*[[${unread}]]*/ 0;
+    setInterval(function () {
+      fetch(countUrl, { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.count > shown) document.getElementById('fresh').hidden = false; })
+        .catch(function () {});
+    }, 30000);
+
+    // Proctor dropdowns: mark proctors already busy at that time
+    var availUrl = /*[[@{/api/proctors/available}]]*/ '/api/proctors/available';
+    document.querySelectorAll('select.proctor-pick').forEach(function (sel) {
+      var loaded = false;
+      function check() {
+        if (loaded) return;
+        loaded = true;
+        fetch(availUrl + '?sessionId=' + encodeURIComponent(sel.dataset.session), { headers: { 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (list) {
+            if (!list) return;
+            list.forEach(function (p) {
+              var o = sel.querySelector('option[value="' + p.id + '"]');
+              if (!o) return;
+              o.textContent = p.available ? p.name : p.name + ' (busy: ' + p.busyWith + ')';
+              o.disabled = !p.available && !o.selected;
+            });
+          })
+          .catch(function () { loaded = false; });
+      }
+      sel.addEventListener('focus', check);
+      sel.addEventListener('mousedown', check);
+    });
+  })();
+</script>
+</body>
+</html>
